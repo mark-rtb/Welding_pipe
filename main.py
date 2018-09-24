@@ -22,7 +22,7 @@ compres_temp=[]
 
 
 number_join = 0
-
+number_port = 0
 
 class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
     # Функция работы с портом
@@ -40,9 +40,28 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         temp_izm=int(b[4])                                     # присваеваем значение темепературы 
         ser.close()                                            # закрываем порт
         return temp_izm
-    
+  
+    def temp_range ():
+        
+        temp_muft = comread(number_port,'si')
+        
+        if temp_muft < 50:
+            i=0
+        elif temp_muft < 120 and temp_muft >= 50:
+            i=1
+       
+        elif temp_muft < 160 and temp_muft >= 120:
+            i=2
+       
+        elif temp_muft < 190 and temp_muft >= 160:
+            i=3
+        
+        elif temp_muft < 260 and temp_muft >= 190:
+            i=4
+            return i
     def core_function(self): #основная функция сварки
         print('test')
+        print(number_port)
 
 
   #  def exit_function(self):
@@ -65,8 +84,9 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         print(D)
 
     def COM_num(self, text):
-        COM = 'COM'+text
-        print(COM)        
+        global number_port
+        number_port = 'COM'+text
+        print(number_port)        
 
         
     def welder(self, text):
