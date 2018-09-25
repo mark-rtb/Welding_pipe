@@ -19,7 +19,7 @@ Kd=1
 s=0
 flag=0
 compres_temp=[]
-
+T=7                                                            # Постоянная времени выборки
 
 number_join = 0
 number_port = 0
@@ -73,6 +73,7 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
     
        
     def core_function(self): #основная функция сварки
+        i = temp_range()
         while i<6:
     #таймер для стационарных режимов
             set_target = int(list_temp[i])                        # устанавливаем значение необходимой температуры в зависимости от цикла сварки
@@ -101,7 +102,21 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
                 Kd = 0
    #Основное вычисление регулятора 
             output= round( Kp + Ki + Kd )
-            
+            #Условие для учета дискретного шага
+            s+=1
+            if s == 1:
+                TlastError=error
+                integrator +=  error
+    #Условия для правильного расчета дифф составляющей
+            elif s == 5:
+                if error > 0:
+                    Tkd=TlastError-error
+                    delta=(abs(Tkd))/T
+                elif error < 0:
+                    Tkd=TlastError-abs(error)
+                    delta=Tkd/T
+                s = 0
+        comread(number_port,'SP 0\r')
 
 
   #  def exit_function(self):
@@ -112,14 +127,17 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         print(number_join)
 
     def prop_st(self, text):
+        global P
         P = int(text)
         print(P)
 
     def integr_koef(self, text):
+        global I
         I = float(text)
         print(I)
 
     def dif_koef(self, text):
+        global D
         D = int(text)
         print(D)
 
