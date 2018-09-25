@@ -19,14 +19,15 @@ Kd=1
 s=0
 flag=0
 compres_temp=[]
+power_list=[]
 T=7                                                            # Постоянная времени выборки
-
+i=1
 number_join = 0
 number_port = 0
 list_temp=[80,120,160,190,260,120]
 class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
     # Функция работы с портом
-    def comread (number_port, comand_controller):              # получаем два параметра номер COM порта и команду для отправки в порт
+    def comread (self, number_port, comand_controller):              # получаем два параметра номер COM порта и команду для отправки в порт
         ser = serial.Serial(number_port)                       # открываем порт
         ser.write(bytearray(comand_controller + '\r','utf-8')) # отсылаем команду информация в порт
         byte =b''                                              # задаем пустой байт, для запуска цикла
@@ -40,12 +41,13 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         if comand_controller == 'si':
             temp_izm = int(b[4])
         else:
-            temp_izm = a                                     # присваеваем значение темепературы 
+            temp_izm = a                              # присваеваем значение темепературы 
         ser.close()                                            # закрываем порт
         return temp_izm
     # Функция выбора рабочего даиппазона  
-    def temp_range ():
-        temp_muft = comread(number_port,'si')                  # получаем значение температуры от сварочника
+    def temp_range(self):
+        global i
+        temp_muft = self.comread(number_port,'si')                  # получаем значение температуры от сварочника
         if temp_muft < 80:                                     # устанавливаем номер рабочего интервала в зависимости от температуры
             i=0
         elif temp_muft < 120 and temp_muft >= 80:
@@ -59,25 +61,27 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         return i
  
         #Условия для выбора мощности
-        def out_set(output):
-            if output > 0 and output <=90:
-               output_set=output
-            elif output >90:
-                output_set = 90
-            else:
-                output_set = 1 
-            return output_set
+    def out_set(self, output):
+        if output > 0 and output <=90:
+            output_set=output
+        elif output >90:
+            output_set = 90
+        else:
+            output_set = 1 
+        return output_set
  
     
 
     
        
     def core_function(self): #основная функция сварки
-        i = temp_range()
+        i = self.temp_range()
+        print(i)
         while i<6:
     #таймер для стационарных режимов
             set_target = int(list_temp[i])                        # устанавливаем значение необходимой температуры в зависимости от цикла сварки
-            if comread(number_port,'si') >= set_target-2 and flag == 0:
+            global flag
+            if self.comread(number_port,'si') >= set_target-2 and flag == 0:
                 time1 = time.clock()
                 flag=1
     #Установка флага для запуска таймера    
@@ -88,14 +92,22 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
 
     #Управляем мощностью аппарата
 
-            set_power = 'SP ' + str(out_set(output))
+            global integrator
+            global output
+            set_power = 'SP ' + str(self.out_set(output))
+            
             global power_list
-            power_list.append(comread(number_port,set_power))   #отправляем значение мощности в порт, получаем в ответ установленную мощность и записываем её в список для построения графика 
-            currentValue=comread(number_port,'si')              # считываем текущее значение из порта
+            self.comread(number_port,set_power)  #отправляем значение мощности в порт, 
+            power_list.append(self.out_set(output))   #получаем в ответ установленную мощность и записываем её в список для построения графика 
+            print(self.out_set(output))
+            currentValue=self.comread(number_port,'si')              # считываем текущее значение из порта
+            compres_temp.append(currentValue)
+            print(currentValue)
             #Расчитываем коэффициенты регулятора
             error= set_target - currentValue   
             Kp=P*error
             Ki=I*integrator
+            global delta
             if error !=0:
                 Kd=D*delta
             else:
@@ -103,6 +115,8 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
    #Основное вычисление регулятора 
             output= round( Kp + Ki + Kd )
             #Условие для учета дискретного шага
+            global s
+            
             s+=1
             if s == 1:
                 TlastError=error
@@ -116,7 +130,7 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
                     Tkd=TlastError-abs(error)
                     delta=Tkd/T
                 s = 0
-        comread(number_port,'SP 0\r')
+        self.comread(number_port,'SP 0\r')
 
 
   #  def exit_function(self):
@@ -188,7 +202,7 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         self.comboBox.activated.connect(self.onActivated)
         self.progressBar.setMaximum(6)
         self.progressBar.setValue(self.i)
-    
+    i=i
 def main():
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
     window = ExampleApp()  # Создаём объект класса ExampleApp
