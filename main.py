@@ -25,6 +25,10 @@ i=1
 number_join = 0
 number_port = 0
 list_temp=[80,120,160,190,260,120]
+list_time_set=[1,1,1,2,2,5]
+
+
+
 class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
     # Функция работы с портом
     def comread (self, number_port, comand_controller):              # получаем два параметра номер COM порта и команду для отправки в порт
@@ -114,6 +118,7 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
                 Kd = 0
    #Основное вычисление регулятора 
             output= round( Kp + Ki + Kd )
+            print(output)
             #Условие для учета дискретного шага
             global s
             
@@ -130,6 +135,9 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
                     Tkd=TlastError-abs(error)
                     delta=Tkd/T
                 s = 0
+                
+                
+            print(list_time_set)
         self.comread(number_port,'SP 0\r')
 
 
