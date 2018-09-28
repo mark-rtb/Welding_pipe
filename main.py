@@ -7,6 +7,8 @@ import numpy as np
 import time
 import csv
 
+from PyQt5.QtCore import QBasicTimer
+
 set_target = 0
 output=0
 Tkd=0
@@ -26,9 +28,6 @@ number_join = 0
 number_port = 0
 list_temp=[80,120,160,190,260,120]
 list_time_set=[1,1,1,2,2,5]
-
-
-
 class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
     # Функция работы с портом
     def comread (self, number_port, comand_controller):              # получаем два параметра номер COM порта и команду для отправки в порт
@@ -74,15 +73,7 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
             output_set = 1 
         return output_set
  
-    
-
-    
-       
-    def core_function(self): #основная функция сварки
-        i = self.temp_range()
-        print(i)
-        while i<6:
-    #таймер для стационарных режимов
+       #таймер для стационарных режимов
             set_target = int(list_temp[i])                        # устанавливаем значение необходимой температуры в зависимости от цикла сварки
             global flag
             if self.comread(number_port,'si') >= set_target-2 and flag == 0:
@@ -92,7 +83,25 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
             if flag == 1:
                 if time.clock()-time1 > int(list_time_set[i])*60:
                     i+=1
-                    flag=0
+                    flag=0 
+
+    def timerEvent(self, e):                        # переделать под себя обработчик таймера
+
+        if self.step >= 100:
+            self.timer.stop()
+            self.btn.setText('Finished')
+            return
+
+        self.step = self.step + 1
+        self.pbar.setValue(self.step)
+    
+       
+    def core_function(self): #основная функция сварки
+        self.timer.start(100, self)   # дописать таймер по нажатию
+        i = self.temp_range()
+        print(i)
+        while i<6:
+
 
     #Управляем мощностью аппарата
 
@@ -135,9 +144,6 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
                     Tkd=TlastError-abs(error)
                     delta=Tkd/T
                 s = 0
-                
-                
-            print(list_time_set)
         self.comread(number_port,'SP 0\r')
 
 
@@ -210,6 +216,8 @@ class ExampleApp(QtWidgets.QMainWindow, Biterm.Ui_MainWindow):
         self.comboBox.activated.connect(self.onActivated)
         self.progressBar.setMaximum(6)
         self.progressBar.setValue(self.i)
+        self.timer = QBasicTimer()
+        self.step = 0
     i=i
 def main():
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
